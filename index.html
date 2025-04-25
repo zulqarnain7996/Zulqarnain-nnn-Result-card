@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Report Card Generator</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/signature_pad@4.2.0/dist/signature_pad.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dom-to-image@2.6.0/dist/dom-to-image.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f4f7fa;
+        }
+        input[type=number]::-webkit-inner-spin-button,
+        input[type=number]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+        .grade-badge {
+            display: inline-block;
+            padding: 0.4rem 1rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            text-align: center;
+            font-size: 1rem;
+            background-color: #f59e0b;
+            color: white;
+            transition: transform 0.2s ease-in-out;
+        }
+        .grade-badge:hover {
+            transform: scale(1.05);
+        }
+        .grade-a-plus { background-color: #15803d; }
+        .grade-a { background-color: #22c55e; }
+        .grade-b { background-color: #f59e0b; }
+        .grade-c { background-color: #ea580c; }
+        .grade-pass { background-color: #2563eb; }
+        .grade-fail { background-color: #dc2626; }
+        input:focus, select:focus {
+            outline: 2px solid transparent;
+            outline-offset: 2px;
+            --tw-ring-color: #1d4ed8;
+            box-shadow: 0 0 0 2px var(--tw-ring-color);
+            border-color: #1d4ed8;
+        }
+        #resultCard {
+            border: 2px solid #1d4ed8;
+            border-radius: 16px;
+            background: #ffffff;
+            padding: 2.5rem;
+            width: 800px;
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.1);
+            position: relative;
+            overflow: visible;
+        }
+        #resultCard::before {
+            content: 'Official Document';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-45deg);
+            font-size: 2.5rem;
+            font-weight: 700;
+            color: rgba(29, 78, 216, 0.1);
+            z-index: 0;
+        }
+        #resultCard > * {
+            position: relative;
+            z-index: 1;
+        }
+        #resultCard th {
+            background: linear-gradient(90deg, #dbeafe, #bfdbfe);
+            color: #1d4ed8;
+            font-weight: 600;
+            padding: 1rem;
+            border-radius: 8px 8px 0 0;
+        }
+        #resultCard td {
+            border-color: #bfdbfe;
+            padding: 1rem;
+            transition: background-color 0.2s ease-in-out;
+        }
+        #resultCard tbody tr:hover {
+            background-color: #eff6ff;
+        }
+        #resultCard tbody tr:nth-child(even) {
+            background-color: #f9fafb;
+        }
+        #resultCard tbody tr:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        #resultCard tfoot {
+            background: linear-gradient(90deg, #dbeafe, #bfdbfe);
+            color: #1d4ed8;
+            font-weight: 600;
+        }
+        .result-header {
+            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px 12px 0 0;
+            margin-bottom: 2rem;
+            box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            align-items: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .logo-box {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            border-radius: 12px;
+            background-color: #eff6ff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.3s ease-in-out;
+            border: 2px dashed #1d4ed8;
+        }
+        .logo-box:hover {
+            background-color: #dbeafe;
+            border-color: #3b82f6;
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(29, 78, 216, 0.3);
+        }
+        .logo-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            border-radius: 12px;
+        }
+        .logo-box input[type="file"] {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+        }
+        .result-footer {
+            border-top: 2px dashed #1d4ed8;
+            padding-top: 2rem;
+            display: flex;
+            justify-content: space-between;
+            color: #4b5563;
+            width: 100%;
+        }
+        .signature-box {
+            text-align: center;
+            width: 45%;
+        }
+        .signature-box img {
+            max-height: 60px;
+            width: auto;
+            margin-bottom: 0.5rem;
+        }
+        .signature-box span {
+            font-size: 0.9rem;
+            font-weight: 500;
+            position: relative;
+        }
+        .signature-box span::after {
+            content: '';
+            position: absolute;
+            bottom: -5px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%;
+            height: 2px;
+            background: linear-gradient(90deg, #1d4ed8, #3b82f6);
+        }
+        .signature-pad {
+            border: 1px dashed #d1d5db;
+            border-radius: 8px;
+            background-color: #f9fafb;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-4 md:p-10">
+    <div class="max-w-4xl mx-auto bg-white rounded-xl shadow-lg p-6 md:p-10">
+        <div id="formContainer">
+            <h1 class="text-3xl md:text-4xl font-bold text-center text-blue-700 mb-8">Premium Report Card Generator</h1>
+            <form id="resultForm" class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6 mb-10">
+                <div class="space-y-5">
+                    <h2 class="text-xl font-semibold text-gray-700 border-b-2 border-blue-200 pb-2 mb-4">School & Student Details</h2>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">School Logo (Click to Upload)</label>
+                        <div class="logo-box">
+                            <img id="logoPreview" src="https://placehold.co/100x100/e2e8f0/cbd5e0?text=Logo" alt="Logo Preview">
+                            <input type="file" id="schoolLogo" accept="image/*">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="schoolName" class="block text-sm font-medium text-gray-700">School Name</label>
+                        <input type="text" id="schoolName" placeholder="e.g., Springfield High" required class="mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                    </div>
+                    <div>
+                        <label for="examName" class="block text-sm font-medium text-gray-700">Examination Name</label>
+                        <input type="text" id="examName" placeholder="e.g., Final Term Examination 2024" required class="mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                    </div>
+                    <div>
+                        <label for="studentName" class="block text-sm font-medium text-gray-700">Student Name</label>
+                        <input type="text" id="studentName" placeholder="e.g., John Doe" required class="mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                    </div>
+                    <div>
+                        <label for="rollNumber" class="block text-sm font-medium text-gray-700">Roll Number</label>
+                        <input type="text" id="rollNumber" placeholder="e.g., 101" required class="mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                    </div>
+                    <div>
+                        <label for="className" class="block text-sm font-medium text-gray-700">Class</label>
+                        <input type="text" id="className" placeholder="e.g., 10th A" required class="mt-1 block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                    </div>
+                </div>
+                <div class="space-y-5">
+                    <h2 class="text-xl font-semibold text-gray-700 border-b-2 border-blue-200 pb-2 mb-4">Subject Marks (Out of 100)</h2>
+                    <div id="subjectMarksContainer" class="space-y-4">
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <input type="text" name="subjectName" placeholder="Subject 1 Name" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                            <input type="number" name="subjectMark" placeholder="Marks" min="0" max="100" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <input type="text" name="subjectName" placeholder="Subject 2 Name" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                            <input type="number" name="subjectMark" placeholder="Marks" min="0" max="100" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <input type="text" name="subjectName" placeholder="Subject 3 Name" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                            <input type="number" name="subjectMark" placeholder="Marks" min="0" max="100" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <input type="text" name="subjectName" placeholder="Subject 4 Name" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                            <input type="number" name="subjectMark" placeholder="Marks" min="0" max="100" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                        </div>
+                        <div class="grid grid-cols-2 gap-4 items-center">
+                            <input type="text" name="subjectName" placeholder="Subject 5 Name" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                            <input type="number" name="subjectMark" placeholder="Marks" min="0" max="100" required class="block w-full px-4 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm transition duration-150">
+                        </div>
+                    </div>
+                    <h2 class="text-xl font-semibold text-gray-700 border-b-2 border-blue-200 pb-2 mb-4 mt-6">Signatures</h2>
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Class Teacher's Signature (Draw Below)</label>
+                        <canvas id="teacherSignatureCanvas" class="signature-pad" width="300" height="100"></canvas>
+                        <div class="mt-2">
+                            <button type="button" id="clearTeacherSignature" class="text-sm text-blue-600 hover:text-blue-800">Clear Signature</button>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="principalSignature" class="block text-sm font-medium text-gray-700 mb-1">Principal's Signature (Upload)</label>
+                        <input type="file" id="principalSignature" accept="image/*" class="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200 transition duration-150">
+                        <img id="principalSignaturePreview" src="https://placehold.co/120x40/e2e8f0/cbd5e0?text=Signature" alt="Principal Signature Preview" class="mt-2 h-12 w-32 object-contain rounded-md border-2 border-gray-300 p-1">
+                    </div>
+                </div>
+                <div class="md:col-span-2 flex justify-center mt-6">
+                    <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:-translate-y-0.5">Generate Report Card</button>
+                </div>
+            </form>
+        </div>
+        <div id="resultCardContainer" class="hidden">
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl md:text-4xl font-bold text-blue-700">Report Card Preview</h1>
+                <button id="backToFormBtn" class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded-lg shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:-translate-y-0.5">Back to Form</button>
+            </div>
+            <div id="resultCard" class="p-6 md:p-8 mx-auto">
+                <div class="result-header">
+                    <div class="logo-box">
+                        <img id="resultLogo" src="https://placehold.co/100x100/e2e8f0/cbd5e0?text=Logo" alt="School Logo">
+                    </div>
+                    <div class="text-center sm:text-right">
+                        <h2 id="resultSchoolName" class="text-2xl md:text-3xl font-bold">School Name</h2>
+                        <p id="resultExamName" class="text-lg md:text-xl">Examination Name</p>
+                        <p class="text-sm mt-1">Academic Session Result</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 mb-6 text-sm md:text-base">
+                    <p><strong>Student Name:</strong> <span id="resultStudentName" class="text-gray-700"></span></p>
+                    <p><strong>Roll Number:</strong> <span id="resultRollNumber" class="text-gray-700"></span></p>
+                    <p><strong>Class:</strong> <span id="resultClassName" class="text-gray-700"></span></p>
+                    <p><strong>Date Generated:</strong> <span id="resultDate" class="text-gray-700"></span></p>
+                </div>
+                <div class="overflow-x-auto mb-6 border border-gray-200 rounded-lg">
+                    <table class="min-w-full text-sm md:text-base">
+                        <thead>
+                            <tr>
+                                <th class="px-4 py-2 text-left">Subject</th>
+                                <th class="px-4 py-2 text-center">Maximum Marks</th>
+                                <th class="px-4 py-2 text-center">Marks Obtained</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resultMarksTableBody"></tbody>
+                        <tfoot class="font-medium">
+                            <tr>
+                                <td class="px-4 py-2 text-right" colspan="2">Total Marks Obtained</td>
+                                <td id="resultTotalMarks" class="px-4 py-2 text-center"></td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm md:text-base font-medium mb-6">
+                    <p><strong>Percentage:</strong> <span id="resultPercentage" class="font-bold text-blue-700"></span></p>
+                    <p><strong>Grade:</strong> <span id="resultGrade" class="grade-badge"></span></p>
+                </div>
+                <div class="result-footer mt-8 pt-6">
+                    <div class="signature-box">
+                        <img id="resultTeacherSignature" alt="Teacher Signature">
+                        <span>Class Teacher's Signature</span>
+                    </div>
+                    <div class="signature-box">
+                        <img id="resultPrincipalSignature" src="https://placehold.co/120x40/e2e8f0/cbd5e0?text=Signature" alt="Principal Signature">
+                        <span>Principal's Signature</span>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-center mt-8">
+                <button id="downloadPdfBtn" class="bg-green-600 hover:bg-green-700 text-white font-bold py-3 px-8 rounded-lg shadow-md hover:shadow-lg transition duration-200 ease-in-out transform hover:-translate-y-0.5">Download as PDF</button>
+            </div>
+        </div>
+        <div id="errorMessage" class="hidden mt-6 p-4 bg-red-100 text-red-700 border border-red-300 rounded-md text-center font-medium"></div>
+    </div>
+    <script>
+        // --- Get DOM Elements ---
+        const resultForm = document.getElementById('resultForm');
+        const formContainer = document.getElementById('formContainer');
+        const schoolLogoInput = document.getElementById('schoolLogo');
+        const logoPreview = document.getElementById('logoPreview');
+        const teacherSignatureCanvas = document.getElementById('teacherSignatureCanvas');
+        const clearTeacherSignatureBtn = document.getElementById('clearTeacherSignature');
+        const principalSignatureInput = document.getElementById('principalSignature');
+        const principalSignaturePreview = document.getElementById('principalSignaturePreview');
+        const subjectMarksContainer = document.getElementById('subjectMarksContainer');
+        const resultCardContainer = document.getElementById('resultCardContainer');
+        const resultCard = document.getElementById('resultCard');
+        const backToFormBtn = document.getElementById('backToFormBtn');
+        const downloadPdfBtn = document.getElementById('downloadPdfBtn');
+        const errorMessageDiv = document.getElementById('errorMessage');
+        let logoSrc = logoPreview.src;
+        let principalSignatureSrc = principalSignaturePreview.src;
+
+        // --- Initialize Signature Pad ---
+        const signaturePad = new SignaturePad(teacherSignatureCanvas, {
+            backgroundColor: 'rgb(249, 250, 251)',
+            penColor: 'rgb(0, 0, 0)'
+        });
+
+        // --- Event Listener: Clear Teacher Signature ---
+        clearTeacherSignatureBtn.addEventListener('click', function() {
+            signaturePad.clear();
+        });
+
+        // --- Event Listener: Logo Upload ---
+        schoolLogoInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    logoPreview.src = e.target.result;
+                    logoSrc = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                logoPreview.src = 'https://placehold.co/100x100/e2e8f0/cbd5e0?text=Logo';
+                logoSrc = logoPreview.src;
+                schoolLogoInput.value = '';
+            }
+        });
+
+        // --- Event Listener: Principal Signature Upload ---
+        principalSignatureInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    principalSignaturePreview.src = e.target.result;
+                    principalSignatureSrc = e.target.result;
+                };
+                reader.readAsDataURL(file);
+            } else {
+                principalSignaturePreview.src = 'https://placehold.co/120x40/e2e8f0/cbd5e0?text=Signature';
+                principalSignatureSrc = principalSignaturePreview.src;
+                principalSignatureInput.value = '';
+            }
+        });
+
+        // --- Event Listener: Form Submission ---
+        resultForm.addEventListener('submit', function(event) {
+            event.preventDefault();
+            hideError();
+            try {
+                generateResult();
+                formContainer.classList.add('hidden');
+                resultCardContainer.classList.remove('hidden');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+            } catch (error) {
+                console.error("Error generating result:", error);
+                showError(`Error: ${error.message}. Please check your inputs.`);
+                resultCardContainer.classList.add('hidden');
+            }
+        });
+
+        // --- Event Listener: Back to Form ---
+        backToFormBtn.addEventListener('click', function() {
+            resultCardContainer.classList.add('hidden');
+            formContainer.classList.remove('hidden');
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        });
+
+        // --- Function: Generate Result Card Content ---
+        function generateResult() {
+            const schoolName = getInputValue('schoolName');
+            const examName = getInputValue('examName');
+            const studentName = getInputValue('studentName');
+            const rollNumber = getInputValue('rollNumber');
+            const className = getInputValue('className');
+            if (!schoolName || !examName || !studentName || !rollNumber || !className) {
+                throw new Error("Please fill in all school and student details.");
+            }
+            const subjectNameInputs = document.querySelectorAll('input[name="subjectName"]');
+            const subjectMarkInputs = document.querySelectorAll('input[name="subjectMark"]');
+            let totalMarks = 0;
+            const subjects = [];
+            const numberOfSubjects = subjectNameInputs.length;
+            if (numberOfSubjects === 0) {
+                throw new Error("No subjects found. Please ensure subject fields exist.");
+            }
+            for (let i = 0; i < numberOfSubjects; i++) {
+                const name = subjectNameInputs[i].value.trim();
+                const markString = subjectMarkInputs[i].value.trim();
+                if (!name) {
+                    throw new Error(`Please enter a name for Subject ${i + 1}.`);
+                }
+                if (markString === '') {
+                    throw new Error(`Please enter marks for '${name}'.`);
+                }
+                const mark = parseInt(markString, 10);
+                if (isNaN(mark) || mark < 0 || mark > 100) {
+                    throw new Error(`Invalid marks for '${name}'. Marks must be a number between 0 and 100.`);
+                }
+                subjects.push({ name, mark });
+                totalMarks += mark;
+            }
+            const maxTotalMarks = numberOfSubjects * 100;
+            const percentage = (maxTotalMarks > 0 ? (totalMarks / maxTotalMarks) * 100 : 0).toFixed(2);
+            const grade = calculateGrade(percentage);
+            setElementTextContent('resultSchoolName', schoolName);
+            setElementTextContent('resultExamName', examName);
+            setElementTextContent('resultStudentName', studentName);
+            setElementTextContent('resultRollNumber', rollNumber);
+            setElementTextContent('resultClassName', className);
+            setElementTextContent('resultDate', new Date().toLocaleDateString());
+            document.getElementById('resultLogo').src = logoSrc;
+            document.getElementById('resultTeacherSignature').src = signaturePad.toDataURL('image/png');
+            document.getElementById('resultPrincipalSignature').src = principalSignatureSrc;
+            const tableBody = document.getElementById('resultMarksTableBody');
+            tableBody.innerHTML = '';
+            subjects.forEach(subject => {
+                const rowClass = tableBody.rows.length % 2 === 0 ? 'bg-white' : 'bg-gray-50';
+                const row = `
+                    <tr class="${rowClass}">
+                        <td class="border-b border-gray-200 px-4 py-2">${subject.name}</td>
+                        <td class="border-b border-gray-200 px-4 py-2 text-center">100</td>
+                        <td class="border-b border-gray-200 px-4 py-2 text-center">${subject.mark}</td>
+                    </tr>
+                `;
+                tableBody.innerHTML += row;
+            });
+            setElementTextContent('resultTotalMarks', totalMarks);
+            setElementTextContent('resultPercentage', `${percentage}%`);
+            const gradeSpan = document.getElementById('resultGrade');
+            gradeSpan.textContent = grade.text;
+            gradeSpan.className = 'grade-badge ' + grade.class;
+        }
+
+        // --- Function: Calculate Grade based on Percentage ---
+        function calculateGrade(percentage) {
+            if (percentage >= 90) return { text: 'A+', class: 'grade-a-plus' };
+            if (percentage >= 80) return { text: 'A', class: 'grade-a' };
+            if (percentage >= 70) return { text: 'B', class: 'grade-b' };
+            if (percentage >= 60) return { text: 'C', class: 'grade-c' };
+            if (percentage > 45) return { text: 'Pass', class: 'grade-pass' };
+            return { text: 'Fail', class: 'grade-fail' };
+        }
+
+        // --- Event Listener: Download PDF Button (Using dom-to-image and jsPDF) ---
+        downloadPdfBtn.addEventListener('click', async function() {
+            const schoolName = getInputValue('schoolName') || "School";
+            const studentName = getInputValue('studentName') || "Student";
+            const rollNumber = getInputValue('rollNumber') || "RollNo";
+            const fileName = `Result_${schoolName.replace(/\s+/g, '_')}_${studentName.replace(/\s+/g, '_')}_${rollNumber}.pdf`;
+            const elementToPrint = document.getElementById('resultCard');
+            if (!elementToPrint) {
+                showError("Could not find the result card element to print.");
+                console.error("Error: Result card element (#resultCard) not found for PDF generation.");
+                return;
+            }
+
+            // Ensure the element is visible
+            elementToPrint.style.display = 'block';
+            elementToPrint.style.visibility = 'visible';
+
+            const originalButtonText = downloadPdfBtn.textContent;
+            downloadPdfBtn.textContent = 'Generating PDF...';
+            downloadPdfBtn.disabled = true;
+            hideError();
+
+            try {
+                // Use dom-to-image to convert the element to a PNG
+                const dataUrl = await domToImage.toPng(elementToPrint, {
+                    quality: 1,
+                    bgcolor: '#ffffff',
+                    width: 800,
+                    height: elementToPrint.offsetHeight
+                });
+
+                // Get jsPDF
+                const { jsPDF } = window.jspdf;
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'px',
+                    format: 'a4'
+                });
+
+                // Get dimensions
+                const imgProps = pdf.getImageProperties(dataUrl);
+                const pdfWidth = pdf.internal.pageSize.getWidth();
+                const pdfHeight = pdf.internal.pageSize.getHeight();
+                const imgWidth = 800; // Element width
+                const imgHeight = elementToPrint.offsetHeight;
+                const scale = Math.min(pdfWidth / imgWidth, pdfHeight / imgHeight);
+                const scaledWidth = imgWidth * scale;
+                const scaledHeight = imgHeight * scale;
+                const xOffset = (pdfWidth - scaledWidth) / 2; // Center horizontally
+                const yOffset = (pdfHeight - scaledHeight) / 2; // Center vertically
+
+                // Add the image to the PDF
+                pdf.addImage(dataUrl, 'PNG', xOffset, yOffset, scaledWidth, scaledHeight);
+
+                // Download the PDF
+                pdf.save(fileName);
+
+                downloadPdfBtn.textContent = originalButtonText;
+                downloadPdfBtn.disabled = false;
+            } catch (error) {
+                console.error('Error generating PDF:', error);
+                showError('Failed to generate PDF. Please try again.');
+                downloadPdfBtn.textContent = originalButtonText;
+                downloadPdfBtn.disabled = false;
+            }
+        });
+
+        // --- Utility Functions ---
+        function getInputValue(id) {
+            const element = document.getElementById(id);
+            return element ? element.value.trim() : '';
+        }
+        function setElementTextContent(id, text) {
+            const element = document.getElementById(id);
+            if (element) {
+                element.textContent = text;
+            }
+        }
+        function showError(message) {
+            errorMessageDiv.textContent = message;
+            errorMessageDiv.classList.remove('hidden');
+        }
+        function hideError() {
+            errorMessageDiv.textContent = '';
+            errorMessageDiv.classList.add('hidden');
+        }
+    </script>
+</body>
+</html>
